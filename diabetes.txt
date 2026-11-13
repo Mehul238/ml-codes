@@ -1,0 +1,40 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score
+
+# ---------- 1. LOAD & PRE-PROCESS ----------
+df = pd.read_csv("diabetes.csv")
+print(df.shape)
+
+# in these columns a value of 0 is impossible, so it really means "missing"
+cols = ["Glucose", "BloodPressure", "SkinThickness", "Insulin", "BMI"]
+df[cols] = df[cols].replace(0, np.nan)
+df[cols] = df[cols].fillna(df[cols].median())
+
+X = df.drop(columns="Outcome")        # features
+y = df["Outcome"]                     # 1 = diabetic, 0 = not diabetic
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+
+# KNN uses distances, so features must be on the same scale
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# ---------- 2. KNN ----------
+knn = KNeighborsClassifier(n_neighbors=5)
+knn.fit(X_train, y_train)
+pred = knn.predict(X_test)
+
+# ---------- 3. METRICS ----------
+acc = accuracy_score(y_test, pred)
+print("Confusion matrix (rows = actual, cols = predicted):")
+print(confusion_matrix(y_test, pred))
+print("Accuracy  :", round(acc, 4))
+print("Error rate:", round(1 - acc, 4))
+print("Precision :", round(precision_score(y_test, pred), 4))
+print("Recall    :", round(recall_score(y_test, pred), 4))

@@ -1,0 +1,46 @@
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+
+# ---------- 1. LOAD & PRE-PROCESS ----------
+df = pd.read_csv("emails.csv")
+print("Shape:", df.shape)
+print("Missing values:", df.isna().sum().sum())
+print("Duplicates:", df.drop(columns="Email No.").duplicated().sum())
+print("Class counts (0 = Not Spam, 1 = Spam):\n", df["Prediction"].value_counts())
+
+X = df.drop(columns=["Email No.", "Prediction"])   # word counts
+y = df["Prediction"]                               # 0 = Not Spam, 1 = Spam
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y)
+
+# ---------- 2. MODELS ----------
+models = {
+    "KNN": KNeighborsClassifier(n_neighbors=5),
+    "SVM": SVC(kernel="linear"),
+}
+
+# ---------- 3. EVALUATION ----------
+rows = []
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    pred = model.predict(X_test)
+    rows.append({"Model": name,
+                 "Accuracy": accuracy_score(y_test, pred),
+                 "Precision": precision_score(y_test, pred),
+                 "Recall": recall_score(y_test, pred),
+                 "F1": f1_score(y_test, pred)})
+    print(f"\n{name} confusion matrix (rows = actual, cols = predicted):")
+    print(confusion_matrix(y_test, pred))
+    sns.heatmap(confusion_matrix(y_test, pred), annot=True, fmt="d", cmap="Blues",
+                xticklabels=["Not Spam", "Spam"], yticklabels=["Not Spam", "Spam"])
+    plt.title(f"{name} confusion matrix")
+    plt.show()
+
+print("\n=== Model comparison ===")
+print(pd.DataFrame(rows).round(3))
